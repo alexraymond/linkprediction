@@ -1,5 +1,8 @@
 from graph_tool.all import *
 import timeit, random, collections
+from min_wis import WiSARD
+from encoding import BitStringEncoder
+import math
 
 def countweightedpaths(source, target, path, timetolive, pathcounter, lastyear):
   g = source.get_graph()
@@ -118,21 +121,46 @@ def testresults(rank, g):
   print "Total edges: " + str(totaledges)
   print "Accuracy: " + str(float(hit)*100/float(totaledges)) + "%%"
   print "Random accuracy: " + str(float(randomhit)*100/float(totaledges)) + "%%"
+  
+def makeBitString(g):
+    n = g.num_vertices()
+    bit_string = ""
+    for u in range(0, n-1):
+	for v in range(u, n):
+	    if(g.edge(g.vertex(u), g.vertex(v))) is not None:
+		bit_string = bit_string + "1"
+	    else:
+		bit_string = bit_string + "0"
+    return bit_string
+  
+def testWiSARD(gprep, gtest):
+    wisard = WiSARD()
+    n = gprep.num_vertices()
+    edge_possibilities = (n*(n-1))/2
+    bit_string = makeBitString(gprep)
+    encoder = BitStringEncoder(int(math.sqrt(edge_possibilities)))
+    wisard.record(encoder(bit_string), "yes") 
     
+    test_string = makeBitString(gtest)
+    print "Answers:" + str(wisard.answers(encoder(test_string)))
+    print "Possible edges:" + str(edge_possibilities)
+    
+def testMetrics():
+    gprep = load_graph("t2010-20124.xml.gz")
+    rank = {}
+    evaluategraph(gprep, 3, rank)
+    items = sorted(rank.items())
+    #items.reverse()
+    orderedrank = collections.OrderedDict(items, key=lambda t: t[0])
+    #print orderedrank
+
+    gtest = load_graph("t20134.xml.gz")
+    graphviz_draw(load_graph("t20134.xml.gz"))
+    #gtest
+    testresults(rank, gtest)
+    #for e in gtest.edges():
+    #print shortest_distance(gprep, gtest.vertex(e.source()), gtest.vertex(e.target()))
 
 gprep = load_graph("t2010-20124.xml.gz")
-rank = {}
-evaluategraph(gprep, 3, rank)
-items = sorted(rank.items())
-#items.reverse()
-orderedrank = collections.OrderedDict(items, key=lambda t: t[0])
-#print orderedrank
-
 gtest = load_graph("t20134.xml.gz")
-graphviz_draw(load_graph("t20134.xml.gz"))
-#gtest
-testresults(rank, gtest)
-#for e in gtest.edges():
-  #print shortest_distance(gprep, gtest.vertex(e.source()), gtest.vertex(e.target()))
-
-
+testWiSARD(gprep, gtest)
