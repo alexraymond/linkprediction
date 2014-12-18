@@ -79,7 +79,7 @@ def evaluategraph(g, d, rank):
 	continue
       value = evaluatepair(g.vertex(u), g.vertex(v), shortestdistance, d, 2013)
       rank[value] = (vertexindexes[g.vertex(u)],vertexindexes[g.vertex(v)])
-      print "(" + str(u) + "," + str(v) + ") = " + str(value) + "(" + str(shortestdistance) + ")"
+      #print "(" + str(u) + "," + str(v) + ") = " + str(value) + "(" + str(shortestdistance) + ")"
       
 def mapfromindex(g):
   indexmap = {}
@@ -101,7 +101,7 @@ def testresults(rank, g):
   keylist = rank.keys()
   keylist.sort()
   keylist.reverse()
-  gcheck = load_graph("t2010-20124.xml.gz")
+  gcheck = load_graph("t2010-20125.xml.gz")
   existing = 0
   for k in keylist:
     #print k
@@ -110,11 +110,11 @@ def testresults(rank, g):
     #print "edge(" + str(k[1][0]) + "," + str(k[1][1]) + "): " + str(g.edge(g.vertex(k[1][0]), g.vertex(k[1][1])))
     i+=1
     for e in gcheck.edge(g.vertex(rank[k][0]), g.vertex(rank[k][1]), all_edges=True):
-      existing += 1
+	existing += 1
     if g.edge(g.vertex(rank[k][0]), g.vertex(rank[k][1])) is not None:
-      hit += 1
+	hit += 1
     if g.edge(g.vertex(random.randint(0, g.num_vertices()-1)), g.vertex(random.randint(0, g.num_vertices()-1))):
-      randomhit += 1
+	randomhit += 1
   print "Attempts: "+ str(i)
   print "Predicted Hits: " + str(hit)
   print "Existing Edges: " + str(existing)
@@ -138,15 +138,39 @@ def testWiSARD(gprep, gtest):
     n = gprep.num_vertices()
     edge_possibilities = (n*(n-1))/2
     bit_string = makeBitString(gprep)
-    encoder = BitStringEncoder(int(math.sqrt(edge_possibilities)))
+    #encoder = BitStringEncoder(int(math.sqrt(edge_possibilities)))
+    encoder = BitStringEncoder(int(edge_possibilities/32))
     wisard.record(encoder(bit_string), "yes") 
     
     test_string = makeBitString(gtest)
-    print "Answers:" + str(wisard.answers(encoder(test_string)))
+    
+    random_graph = generateRandomGraph(gtest.num_vertices(), gtest.num_edges())
+    empty_graph = generateRandomGraph(gtest.num_vertices(), 0)
+    random_string = makeBitString(random_graph)
+    empty_string = makeBitString(empty_graph)
+    print "Test Graph has " + str(gtest.num_vertices()) + " vertices and " + str(gtest.num_edges()) + " edges."
+    print "Random Graph has " + str(random_graph.num_vertices()) + " vertices and " + str(random_graph.num_edges()) + " edges."
+    
+    print "RAM Neurons:" + str(int(math.sqrt(edge_possibilities)))
     print "Possible edges:" + str(edge_possibilities)
+    print "Answers:" + str(wisard.answers(encoder(test_string)))   
+    print "Random Answers:" + str(wisard.answers(encoder(random_string)))
+    print "Empty Graph Answers:" + str(wisard.answers(encoder(empty_string)))
+    
+    
+def generateRandomGraph(num_vertices, num_edges):
+    g = Graph()
+    for i in range(0, num_vertices):
+	g.add_vertex()
+    for i in range(0, num_edges):
+	g.add_edge(g.vertex(random.randint(0, num_vertices-1)), g.vertex(random.randint(0, num_vertices-1)))
+    print "Random graph generated!"
+    return g
+	    
+    
     
 def testMetrics():
-    gprep = load_graph("t2010-20124.xml.gz")
+    gprep = load_graph("t2010-20125.xml.gz")
     rank = {}
     evaluategraph(gprep, 3, rank)
     items = sorted(rank.items())
@@ -154,13 +178,14 @@ def testMetrics():
     orderedrank = collections.OrderedDict(items, key=lambda t: t[0])
     #print orderedrank
 
-    gtest = load_graph("t20134.xml.gz")
-    graphviz_draw(load_graph("t20134.xml.gz"))
+    gtest = load_graph("t20135.xml.gz")
+    graphviz_draw(load_graph("t20135.xml.gz"))
     #gtest
     testresults(rank, gtest)
     #for e in gtest.edges():
     #print shortest_distance(gprep, gtest.vertex(e.source()), gtest.vertex(e.target()))
 
-gprep = load_graph("t2010-20124.xml.gz")
-gtest = load_graph("t20134.xml.gz")
+gprep = load_graph("t2010-20125.xml.gz")
+gtest = load_graph("t20135.xml.gz")
 testWiSARD(gprep, gtest)
+#testMetrics()
