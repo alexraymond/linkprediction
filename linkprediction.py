@@ -96,10 +96,10 @@ g.set_edge_filter(yearfilter)
 g.purge_edges()
 print "2010-2013 vertices:" + str(g.num_vertices())
 print "2010-2013 edges:" + str(g.num_edges())
-toremove = shrinknetwork(g, 0.95)
+toremove = shrinknetwork(g, 0.70)
 g.set_vertex_filter(toremove)
 g.purge_vertices()
-degree = 6
+degree = 5
 minimumdegree(g, degree)
 #g.vertex_properties["index"] = g.vertex_index
 assignindexes(g)

@@ -3,6 +3,7 @@ import timeit, random, collections
 from min_wis import WiSARD
 from encoding import BitStringEncoder
 import math
+import time
 
 def countweightedpaths(source, target, path, timetolive, pathcounter, lastyear):
   g = source.get_graph()
@@ -104,7 +105,7 @@ def testresults(rank, g):
   gcheck = load_graph("t2010-20125.xml.gz")
   existing = 0
   for k in keylist:
-    #print k
+    print "(" + str(rank[k][0]) + ", " + str(rank[k][1]) + ") = " + str(k)
     if i >= totaledges:
       break
     #print "edge(" + str(k[1][0]) + "," + str(k[1][1]) + "): " + str(g.edge(g.vertex(k[1][0]), g.vertex(k[1][1])))
@@ -122,18 +123,7 @@ def testresults(rank, g):
   print "Accuracy: " + str(float(hit)*100/float(totaledges)) + "%%"
   print "Random accuracy: " + str(float(randomhit)*100/float(totaledges)) + "%%"
   
-def makeBitString(g):
-    n = g.num_vertices()
-    bit_string = ""
-    for u in range(0, n-1):
-	for v in range(u, n):
-	    if(g.edge(g.vertex(u), g.vertex(v))) is not None:
-		bit_string = bit_string + "1"
-	    else:
-		bit_string = bit_string + "0"
-    return bit_string
-  
-def testWiSARD(gprep, gtest):
+def testWiSARD2(gprep, gtest):
     wisard = WiSARD()
     n = gprep.num_vertices()
     edge_possibilities = (n*(n-1))/2
@@ -166,6 +156,63 @@ def generateRandomGraph(num_vertices, num_edges):
 	g.add_edge(g.vertex(random.randint(0, num_vertices-1)), g.vertex(random.randint(0, num_vertices-1)))
     print "Random graph generated!"
     return g
+
+def thermometer(i, bits):
+    if i > bits:
+	i = bits
+    return ("0"*(bits-i)) + ("1"*i)
+
+def makeBitString(g, v, bits):
+    bitstring = ""
+    for u in g.vertices():
+	edges = 0
+	for e in g.edge(u, v, all_edges=True):
+	    edges = edges+1
+	bitstring += thermometer(edges, bits)
+    return bitstring
+
+def testWiSARD(u_bits, v_bits):
+    wisard = WiSARD()
+    encoder = BitStringEncoder(len(u_bits)/64)
+    wisard.record(encoder(u_bits), "Edge")
+    u_v = wisard.answers(encoder(v_bits))
+    return u_v.values()[0]
+	
+
+def testPair(g, u, v, deg):
+    u_bits = makeBitString(g, u, deg)
+    v_bits = makeBitString(g, v, deg)
+    
+    u_v = testWiSARD(u_bits, v_bits)
+    v_u = testWiSARD(v_bits, u_bits)
+    #v_u = u_v
+    return int(u_v+v_u)
+    
+    
+
+def testPairs(g, gtest):
+    rank = {}
+    num_vertices = g.num_vertices()
+    max_deg = 0
+    for i in range(0, num_vertices):
+	if g.vertex(i).out_degree() > max_deg:
+	    max_deg = g.vertex(i).out_degree()
+    print "Maximum degree: " + str(max_deg)
+    for u in range(0, num_vertices-1):
+	for v in range(1, num_vertices):
+	    if u == v:
+		continue
+	    #print makeBitString(g, g.vertex(u), 2) + "\n\n\n"
+	    key = testPair(g, g.vertex(u), g.vertex(v), max_deg)
+	    print "Testing pair " + str(u) + "," + str(v) + " = " + str(key)
+	    key = key * 100000
+	    while key in rank:
+		key = key+1
+	    rank[key] = (u,v)
+    items = sorted(rank.items())
+    orderedrank = collections.OrderedDict(items, key=lambda t: t[0])
+    testresults(rank, gtest)
+    
 	    
     
     
@@ -185,7 +232,10 @@ def testMetrics():
     #for e in gtest.edges():
     #print shortest_distance(gprep, gtest.vertex(e.source()), gtest.vertex(e.target()))
 
+start = time.time()
 gprep = load_graph("t2010-20125.xml.gz")
 gtest = load_graph("t20135.xml.gz")
-testWiSARD(gprep, gtest)
+testPairs(gprep, gtest)
+end = time.time()
+print "Time elapsed: " + str(end-start)
 #testMetrics()
