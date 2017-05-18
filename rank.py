@@ -105,7 +105,7 @@ def testresults(rank, g):
   gcheck = load_graph("t2010-20125.xml.gz")
   existing = 0
   for k in keylist:
-    print "(" + str(rank[k][0]) + ", " + str(rank[k][1]) + ") = " + str(k)
+    #print "(" + str(rank[k][0]) + ", " + str(rank[k][1]) + ") = " + str(k)
     if i >= totaledges:
       break
     #print "edge(" + str(k[1][0]) + "," + str(k[1][1]) + "): " + str(g.edge(g.vertex(k[1][0]), g.vertex(k[1][1])))
@@ -192,6 +192,7 @@ def testPair(g, u, v, deg):
 
 def testPairs(g, gtest):
     rank = {}
+    jaccardrank = {}
     num_vertices = g.num_vertices()
     max_deg = 0
     for i in range(0, num_vertices):
@@ -208,11 +209,14 @@ def testPairs(g, gtest):
 	    key = key * 100000
 	    while key in rank:
 		key = key+1
+	    jaccardscore = evaluatemodifiedjaccard(g.vertex(u), g.vertex(v), 1, 1)
 	    rank[key] = (u,v)
+	    jaccardrank[jaccardscore] = (u,v)
     items = sorted(rank.items())
     orderedrank = collections.OrderedDict(items, key=lambda t: t[0])
     testresults(rank, gtest)
-    
+    print "JACCARD"
+    testresults(jaccardrank, gtest)
 	    
     
     
