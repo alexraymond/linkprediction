@@ -33,16 +33,19 @@ def countweightedpaths(source, target, path, timetolive, pathcounter, lastyear):
       weight += countweightedpaths(neighbour, target, thispath, timetolive-1, pathcounter + edgeweights, lastyear)
   return weight
 
-def verticesatdistance(source, d, vertices):
-  g = source.get_graph()
+def props(cls):
+  return [i for i in cls.__dict__.keys() if i[:1] != '_']
+
+def verticesatdistance(graph, source, d, vertices):
+  g = graph
   vertices.add(source)
   if d > 0:
     for neighbour in source.all_neighbours():
       if neighbour not in vertices:
-	verticesatdistance(neighbour, d-1, vertices)
-	
+	verticesatdistance(g, neighbour, d-1, vertices)
 
-def evaluatemodifiedjaccard(source, target, shortestdistance, d):
+
+def evaluatemodifiedjaccard(graph, source, target, shortestdistance, d):
   total = 0.0
   #shortestdistance = shortest_distance(source.get_graph(), source, target)
   #print shortestdistance
@@ -50,8 +53,8 @@ def evaluatemodifiedjaccard(source, target, shortestdistance, d):
   #  return 0
   sourcevertices = set()
   targetvertices = set()
-  verticesatdistance(source, shortestdistance, sourcevertices)
-  verticesatdistance(target, shortestdistance, targetvertices)
+  verticesatdistance(graph, source, shortestdistance, sourcevertices)
+  verticesatdistance(graph, target, shortestdistance, targetvertices)
   intersection = len(sourcevertices.intersection(targetvertices))
   union = len(sourcevertices.union(targetvertices))
   #print intersection, union, float(intersection)/float(union)
@@ -61,7 +64,7 @@ def evaluatepair(source, target, shortestdistance, d, baseyear):
   i = 0
   value = 0.0
   powervalue = 0.0
-  jaccard = evaluatemodifiedjaccard(source, target, shortestdistance, d)
+  jaccard = evaluatemodifiedjaccard(graph, source, target, shortestdistance, d)
   for i in range(2, d+1):
     paths = countweightedpaths(source, target, list(), i, 0.0, baseyear)
     value += jaccard * paths
@@ -78,10 +81,10 @@ def evaluategraph(g, d, rank):
       shortestdistance = shortest_distance(g, g.vertex(u), g.vertex(v))
       if shortestdistance > d or shortestdistance < 2:
 	continue
-      value = evaluatepair(g.vertex(u), g.vertex(v), shortestdistance, d, 2013)
+      value = evaluatepair(g, g.vertex(u), g.vertex(v), shortestdistance, d, 2013)
       rank[value] = (vertexindexes[g.vertex(u)],vertexindexes[g.vertex(v)])
       #print "(" + str(u) + "," + str(v) + ") = " + str(value) + "(" + str(shortestdistance) + ")"
-      
+
 def mapfromindex(g):
   indexmap = {}
   vertexindexes = g.vertex_properties["index"]
@@ -122,7 +125,7 @@ def testresults(rank, g):
   print "Total edges: " + str(totaledges)
   print "Accuracy: " + str(float(hit)*100/float(totaledges)) + "%%"
   print "Random accuracy: " + str(float(randomhit)*100/float(totaledges)) + "%%"
-  
+
 def testWiSARD2(gprep, gtest):
     wisard = WiSARD()
     n = gprep.num_vertices()
@@ -130,24 +133,24 @@ def testWiSARD2(gprep, gtest):
     bit_string = makeBitString(gprep)
     #encoder = BitStringEncoder(int(math.sqrt(edge_possibilities)))
     encoder = BitStringEncoder(int(edge_possibilities/32))
-    wisard.record(encoder(bit_string), "yes") 
-    
+    wisard.record(encoder(bit_string), "yes")
+
     test_string = makeBitString(gtest)
-    
+
     random_graph = generateRandomGraph(gtest.num_vertices(), gtest.num_edges())
     empty_graph = generateRandomGraph(gtest.num_vertices(), 0)
     random_string = makeBitString(random_graph)
     empty_string = makeBitString(empty_graph)
     print "Test Graph has " + str(gtest.num_vertices()) + " vertices and " + str(gtest.num_edges()) + " edges."
     print "Random Graph has " + str(random_graph.num_vertices()) + " vertices and " + str(random_graph.num_edges()) + " edges."
-    
+
     print "RAM Neurons:" + str(int(math.sqrt(edge_possibilities)))
     print "Possible edges:" + str(edge_possibilities)
-    print "Answers:" + str(wisard.answers(encoder(test_string)))   
+    print "Answers:" + str(wisard.answers(encoder(test_string)))
     print "Random Answers:" + str(wisard.answers(encoder(random_string)))
     print "Empty Graph Answers:" + str(wisard.answers(encoder(empty_string)))
-    
-    
+
+
 def generateRandomGraph(num_vertices, num_edges):
     g = Graph()
     for i in range(0, num_vertices):
@@ -177,18 +180,18 @@ def testWiSARD(u_bits, v_bits):
     wisard.record(encoder(u_bits), "Edge")
     u_v = wisard.answers(encoder(v_bits))
     return u_v.values()[0]
-	
+
 
 def testPair(g, u, v, deg):
     u_bits = makeBitString(g, u, deg)
     v_bits = makeBitString(g, v, deg)
-    
+
     u_v = testWiSARD(u_bits, v_bits)
     v_u = testWiSARD(v_bits, u_bits)
     #v_u = u_v
     return int(u_v+v_u)
-    
-    
+
+
 
 def testPairs(g, gtest):
     rank = {}
@@ -209,7 +212,7 @@ def testPairs(g, gtest):
 	    key = key * 100000
 	    while key in rank:
 		key = key+1
-	    jaccardscore = evaluatemodifiedjaccard(g.vertex(u), g.vertex(v), 1, 1)
+	    jaccardscore = evaluatemodifiedjaccard(g, g.vertex(u), g.vertex(v), 1, 1)
 	    rank[key] = (u,v)
 	    jaccardrank[jaccardscore] = (u,v)
     items = sorted(rank.items())
@@ -217,9 +220,9 @@ def testPairs(g, gtest):
     testresults(rank, gtest)
     print "JACCARD"
     testresults(jaccardrank, gtest)
-	    
-    
-    
+
+
+
 def testMetrics():
     gprep = load_graph("t2010-20125.xml.gz")
     rank = {}
