@@ -203,7 +203,7 @@ def testPairs(g, gtest):
 	    max_deg = g.vertex(i).out_degree()
     print "Maximum degree: " + str(max_deg)
     for u in range(0, num_vertices-1):
-	for v in range(1, num_vertices):
+	for v in range(u, num_vertices):
 	    if u == v:
 		continue
 	    #print makeBitString(g, g.vertex(u), 2) + "\n\n\n"

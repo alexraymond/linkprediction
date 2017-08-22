@@ -60,7 +60,7 @@ def assignindexes(g):
     vertexindexes[v] = i
     i += 1
   g.vertex_properties["index"] = vertexindexes
-  
+
 def shrinknetwork(g, p):
   toremove = g.new_vertex_property("bool")
   for v in g.vertices():
@@ -79,7 +79,7 @@ def shrinknetworkbydistance(g, alpha):
   for v in g.vertices():
     shortestdistance = shortest_distance(g, highestdegreevertex, v)
     if shortestdistance == 0:
-      p = 1.0 
+      p = 1.0
     elif shortestdistance > 6:
       p = 0.0
     else:
@@ -89,7 +89,7 @@ def shrinknetworkbydistance(g, alpha):
     else:
       toremove[v] = False
   return toremove
-    
+
 
 yearfilter = filteredges(g, 2010, 2013)
 g.set_edge_filter(yearfilter)
